@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.exe
+*.blockmap
+app.asar
+app.asar.unpacked/
+prodocs-ai-v2/

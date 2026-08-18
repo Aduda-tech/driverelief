@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <title>Drive Relief</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-brand">
+        <img src="../../assets/icon.png" alt="" width="32" height="32" />
+        <div>
+          <div class="brand-name">Drive Relief</div>
+          <p id="status" class="brand-status">Ready</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" data-view="scan">
+          <span class="nav-icon">📂</span>
+          <span class="nav-label">Scan &amp; Move</span>
+        </button>
+        <button class="nav-btn" data-view="junk">
+          <span class="nav-icon">🧹</span>
+          <span class="nav-label">Clean Junk</span>
+        </button>
+        <button class="nav-btn" data-view="audit">
+          <span class="nav-icon">🔍</span>
+          <span class="nav-label">Audit Drive</span>
+        </button>
+        <button class="nav-btn" data-view="settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-drive">
+        <div class="sidebar-section-label">Target Drive</div>
+        <select id="drive-select" class="sidebar-select"></select>
+        <div id="drive-info" class="drive-meta"></div>
+        <button id="btn-refresh-drives" class="sidebar-btn">↻ Refresh</button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-section-label">Mirror folder name</div>
+        <input id="mirror-root" type="text" class="sidebar-input" value="C-drive-mirror" />
+        <span class="drive-meta"><code>&lt;drive&gt;\<span id="mirror-preview">C-drive-mirror</span>\…</code></span>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <div id="main-area">
+      <!-- Top toolbar -->
+      <div id="toolbar">
+        <div id="transfer-banner" class="banner hidden">
+          <span id="transfer-banner-text"></span>
+          <button id="btn-resume-transfer" class="primary small">Resume</button>
+          <button id="btn-dismiss-transfer" class="ghost small">Dismiss</button>
+        </div>
+
+        <!-- Scan view toolbar -->
+        <div class="toolbar-row" data-toolbar="scan">
+          <div class="toolbar-left">
+            <button id="btn-scan" class="primary">Scan drive</button>
+            <button id="btn-check-all" class="ghost">Select all</button>
+            <span id="scan-totals" class="toolbar-info"></span>
+          </div>
+          <div class="toolbar-right">
+            <button id="btn-move" class="primary" disabled>Move to drive</button>
+          </div>
+        </div>
+
+        <!-- Junk view toolbar -->
+        <div class="toolbar-row hidden" data-toolbar="junk">
+          <div class="toolbar-left">
+            <button id="btn-scan-junk" class="primary">Scan junk</button>
+            <span id="junk-total" class="toolbar-info"></span>
+          </div>
+          <div class="toolbar-right">
+            <button id="btn-delete-junk" class="danger" disabled>Delete selected</button>
+          </div>
+        </div>
+
+        <!-- Audit view toolbar -->
+        <div class="toolbar-row hidden" data-toolbar="audit">
+          <div class="toolbar-left">
+            <button id="btn-audit" class="primary">Audit drive</button>
+            <button id="btn-audit-select-all" class="ghost">Select all</button>
+            <button id="btn-audit-clear" class="ghost">Clear</button>
+            <span id="audit-totals" class="toolbar-info"></span>
+          </div>
+          <div class="toolbar-right">
+            <button id="btn-audit-move" class="primary" disabled>Move selected</button>
+            <button id="btn-audit-delete" class="danger" disabled>Delete selected</button>
+          </div>
+        </div>
+
+        <!-- Settings view toolbar -->
+        <div class="toolbar-row hidden" data-toolbar="settings">
+          <div class="toolbar-left">
+            <span class="toolbar-title">Settings</span>
+          </div>
+          <div class="toolbar-right">
+            <button id="btn-save-settings" class="primary">Save settings</button>
+            <span id="settings-saved" class="toolbar-info"></span>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div id="scan-progress" class="progress hidden"></div>
+        <div id="move-progress" class="progress hidden"></div>
+      </div>
+
+      <!-- File browser content -->
+      <div id="content">
+
+        <!-- SCAN VIEW -->
+        <div class="view active" data-view="scan">
+          <div class="file-list" id="tree">
+            <div class="empty-state">
+              <div class="empty-icon">📂</div>
+              <div class="empty-title">No files scanned yet</div>
+              <div class="empty-sub">Click "Scan drive" to find moveable files on your C: drive</div>
+            </div>
+          </div>
+          <div id="excluded" class="excluded hidden"></div>
+          <div class="sub-section">
+            <div class="sub-header">
+              <span class="sub-title">New files awaiting move</span>
+              <div class="sub-actions">
+                <button id="btn-check-new" class="ghost small">Check now</button>
+                <button id="btn-move-new" class="primary small" disabled>Move new files</button>
+              </div>
+            </div>
+            <div id="new-files" class="file-list">
+              <div class="empty-state small">
+                <span class="empty-sub">Run "Check now" to find recently downloaded files.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- JUNK VIEW -->
+        <div class="view" data-view="junk">
+          <div class="file-list" id="junk-list">
+            <div class="empty-state">
+              <div class="empty-icon">🧹</div>
+              <div class="empty-title">No junk scanned yet</div>
+              <div class="empty-sub">Click "Scan junk" to find cache, temp and installer files you can safely delete</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUDIT VIEW -->
+        <div class="view" data-view="audit">
+          <div class="file-list" id="audit-list">
+            <div class="empty-state">
+              <div class="empty-icon">🔍</div>
+              <div class="empty-title">No audit data yet</div>
+              <div class="empty-sub">Click "Audit drive" to account for the whole disk — biggest files and folders first</div>
+            </div>
+          </div>
+          <p id="audit-note" class="view-note"></p>
+          <div class="sub-section">
+            <div class="sub-header">
+              <span class="sub-title">Installed programs</span>
+              <span id="program-note" class="view-note"></span>
+            </div>
+            <div id="program-list" class="file-list">
+              <div class="empty-state small">
+                <span class="empty-sub">Run "Audit drive" to see installed programs sorted by size.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SETTINGS VIEW -->
+        <div class="view" data-view="settings">
+          <div class="settings-grid">
+            <div class="settings-group">
+              <div class="settings-group-title">Auto-move</div>
+              <div class="settings-row">
+                <label class="toggle-label">
+                  <input id="auto-move-enabled" type="checkbox" checked />
+                  <span class="toggle-switch"></span>
+                  Automatically move files when drive is connected
+                </label>
+                <span class="settings-hint">Files in watched folders are moved to the target drive as soon as it's plugged in. No reminders needed.</span>
+              </div>
+              <div class="settings-row">
+                <label class="toggle-label">
+                  <input id="auto-move-on-connect" type="checkbox" checked />
+                  <span class="toggle-switch"></span>
+                  Move on every drive connection
+                </label>
+                <span class="settings-hint">If off, auto-move only runs on the scheduled interval, not immediately on connect.</span>
+              </div>
+              <div class="settings-row">
+                <label class="toggle-label">
+                  <input id="keep-icons" type="checkbox" />
+                  <span class="toggle-switch"></span>
+                  Keep file icons in original folders
+                </label>
+                <span class="settings-hint">After moving files, creates a link at the original location pointing to the external drive. Files appear in both places. If the drive is disconnected, Windows shows "drive missing". Requires running as Administrator.</span>
+              </div>
+            </div>
+            <div class="settings-group">
+              <div class="settings-group-title">Transfer</div>
+              <div class="settings-row">
+                <label for="authorized-drive-name">Authorized drive name</label>
+                <input id="authorized-drive-name" type="text" class="settings-input" placeholder="Leave blank to allow any drive" />
+                <span class="settings-hint">Only auto-move files to a drive with this volume label</span>
+              </div>
+            </div>
+            <div class="settings-group">
+              <div class="settings-group-title">Reminder</div>
+              <div class="settings-row">
+                <label for="reminder-interval">Remind every (minutes)</label>
+                <input id="reminder-interval" type="number" class="settings-input" min="1" value="15" />
+                <span class="settings-hint">When auto-move is off, how often to check for new files. Dismissed reminders use exponential backoff.</span>
+              </div>
+            </div>
+            <div class="settings-group">
+              <div class="settings-group-title">Watch folders</div>
+              <div id="watch-folders" class="chips"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
