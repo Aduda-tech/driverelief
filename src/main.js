@@ -19,6 +19,8 @@ let lastKnownNewFiles = [];
 let lastPrograms = [];
 let quitting = false;
 let autoMoving = false;
+let lastDriveConnected = false;
+let lastDriveDisconnectReminder = 0;
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -31,6 +33,11 @@ if (!gotLock) {
 function main() {
   config.init(app.getPath('userData'));
   app.setAppUserModelId('com.driverelief.app');
+
+  const cfg = config.get();
+  if (cfg.autoStart !== false) {
+    app.setLoginItemSettings({ openAtLogin: true, path: app.getPath('exe') });
+  }
 
   app.whenReady().then(() => {
     createWindow();
@@ -65,8 +72,8 @@ function main() {
     junk.computeJunk((p) => send('junk:progress', p))
   );
 
-  ipcMain.handle('junk:delete', async (e, ids) => {
-    const results = await junk.deleteJunk(Array.isArray(ids) ? ids : []);
+  ipcMain.handle('junk:delete', async (e, ids, cachedTargets) => {
+    const results = await junk.deleteJunk(Array.isArray(ids) ? ids : [], cachedTargets);
     const fresh = await junk.computeJunk();
     return { results, junk: fresh };
   });
@@ -162,6 +169,9 @@ function main() {
     const prev = config.get().reminderIntervalMin;
     const next = config.set(patch);
     if (Number(prev) !== Number(next.reminderIntervalMin)) startReminder();
+    if ('autoStart' in patch) {
+      app.setLoginItemSettings({ openAtLogin: !!patch.autoStart, path: app.getPath('exe') });
+    }
     return next;
   });
 
@@ -278,13 +288,37 @@ function startDriveWatcher() {
 async function pollDriveAndAutoMove() {
   if (autoMoving) return;
   const cfg = config.get();
-  if (!cfg.autoMoveEnabled) return;
 
   const target = await pickTargetDrive();
+
   if (!target) {
+    if (lastDriveConnected) {
+      lastDriveConnected = false;
+      const driveLabel = cfg.authorizedDriveName || cfg.targetDrive || 'your external drive';
+      const now = Date.now();
+      if (now - lastDriveDisconnectReminder > 5 * 60 * 1000) {
+        lastDriveDisconnectReminder = now;
+        send('app:toast', { type: 'error', text: `${driveLabel} disconnected. Please reconnect it to continue auto-moving files.` });
+        if (Notification.isSupported()) {
+          const n = new Notification({
+            title: 'Drive disconnected',
+            body: `Please reconnect ${driveLabel} to continue auto-moving files.`
+          });
+          n.on('click', () => showWindow());
+          n.show();
+        }
+      }
+    }
     updateTrayMenu(0);
     return;
   }
+
+  if (!lastDriveConnected) {
+    lastDriveConnected = true;
+    send('app:toast', { type: 'ok', text: `${target} connected. Ready to move files.` });
+  }
+
+  if (!cfg.autoMoveEnabled) return;
 
   const watchDirs = resolveWatchDirs(cfg);
   const files = await mover.findNewUnmirrored({
@@ -391,6 +425,22 @@ async function checkNewFiles() {
   const target = await pickTargetDrive();
 
   if (!target) {
+    if (!cfg.autoMoveEnabled) {
+      const driveLabel = cfg.authorizedDriveName || cfg.targetDrive || 'your external drive';
+      const now = Date.now();
+      if (now - lastDriveDisconnectReminder > 10 * 60 * 1000) {
+        lastDriveDisconnectReminder = now;
+        send('app:toast', { type: 'error', text: `Connect ${driveLabel} to sync your files.` });
+        if (Notification.isSupported()) {
+          const n = new Notification({
+            title: 'Drive not connected',
+            body: `Please connect ${driveLabel} to sync your files.`
+          });
+          n.on('click', () => showWindow());
+          n.show();
+        }
+      }
+    }
     updateTrayMenu(0);
     return;
   }

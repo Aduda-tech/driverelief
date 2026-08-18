@@ -39,6 +39,7 @@ const els = {
   autoMoveEnabled: document.getElementById('auto-move-enabled'),
   autoMoveOnConnect: document.getElementById('auto-move-on-connect'),
   keepIcons: document.getElementById('keep-icons'),
+  autoStart: document.getElementById('auto-start'),
   btnSaveSettings: document.getElementById('btn-save-settings'),
   settingsSaved: document.getElementById('settings-saved'),
   toast: document.getElementById('toast'),
@@ -420,7 +421,8 @@ async function deleteJunkWithIds(ids, bytes) {
   els.btnDeleteJunk.disabled = true;
   setStatus('Deleting…', true);
   try {
-    const res = await bridge.deleteJunk(ids);
+    const cachedTargets = junkData ? junkData.targets : null;
+    const res = await bridge.deleteJunk(ids, cachedTargets);
     const freed = res.results.reduce((a, r) => a + (r.ok ? r.freed : 0), 0);
     junkData = res.junk;
     renderJunk(junkData);
@@ -768,6 +770,7 @@ async function loadSettings() {
   els.autoMoveEnabled.checked = cfg.autoMoveEnabled !== false;
   els.autoMoveOnConnect.checked = cfg.autoMoveOnConnect !== false;
   els.keepIcons.checked = cfg.keepIcons === true;
+  els.autoStart.checked = cfg.autoStart !== false;
   renderWatchChips(cfg);
 }
 
@@ -785,7 +788,8 @@ els.btnSaveSettings.addEventListener('click', async () => {
     authorizedDriveName: els.authorizedDriveName.value.trim(),
     autoMoveEnabled: els.autoMoveEnabled.checked,
     autoMoveOnConnect: els.autoMoveOnConnect.checked,
-    keepIcons: els.keepIcons.checked
+    keepIcons: els.keepIcons.checked,
+    autoStart: els.autoStart.checked
   });
   els.mirrorPreview.textContent = els.mirrorRoot.value.trim() || 'C-drive-mirror';
   els.settingsSaved.textContent = 'Saved';

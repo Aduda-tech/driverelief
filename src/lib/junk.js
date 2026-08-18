@@ -243,8 +243,16 @@ async function computeJunk(onProgress) {
   return result;
 }
 
-async function deleteJunk(ids) {
-  const { targets, _matchers } = await computeJunk();
+async function deleteJunk(ids, cachedTargets) {
+  let targets, _matchers;
+  if (cachedTargets && Array.isArray(cachedTargets) && cachedTargets.length > 0) {
+    targets = cachedTargets;
+    _matchers = {};
+  } else {
+    const computed = await computeJunk();
+    targets = computed.targets;
+    _matchers = computed._matchers || {};
+  }
   const results = [];
   for (const id of ids) {
     const t = targets.find((x) => x.id === id);

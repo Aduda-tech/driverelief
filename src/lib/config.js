@@ -14,7 +14,8 @@ const DEFAULTS = {
   autoMoveEnabled: true,
   lastDismissedAt: 0,
   autoMoveOnConnect: true,
-  keepIcons: false
+  keepIcons: false,
+  autoStart: true
 };
 
 function init(userData) {
