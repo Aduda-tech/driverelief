@@ -29,26 +29,24 @@ jobs:
 
       - name: Build Electron app
         id: build
-        run: npm run dist -- --verbose > build-output.txt 2>&1
-        continue-on-error: true
+        run: |
+          $ErrorActionPreference = 'Continue'
+          try {
+            npm run dist -- --verbose 2>&1 | Tee-Object -Variable buildOutput
+          } catch {
+            $buildOutput = $_.Exception.Message
+          }
+          echo "## Build Output" >> $env:GITHUB_STEP_SUMMARY
+          echo '```' >> $env:GITHUB_STEP_SUMMARY
+          $buildOutput | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          echo '```' >> $env:GITHUB_STEP_SUMMARY
+          if ($LASTEXITCODE -ne 0) {
+            echo "Build failed with exit code $LASTEXITCODE" >> $env:GITHUB_STEP_SUMMARY
+            exit 1
+          }
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           GH_TOKEN: ""
-
-      - name: Show build log
-        if: always()
-        run: type build-output.txt
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build-output.txt
-
-      - name: Fail if build failed
-        if: steps.build.outcome == 'failure'
-        run: exit 1
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
