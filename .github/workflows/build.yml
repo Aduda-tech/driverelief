@@ -22,10 +22,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Verify build files
+        run: |
+          node -e "const p=require('./package.json'); console.log('main:', p.main); console.log('build:', JSON.stringify(p.build.win))"
+          if (Test-Path assets/icon.ico) { Write-Output "icon.ico exists" } else { Write-Output "icon.ico MISSING" }
+
       - name: Build Electron app
-        run: npx electron-builder --win --verbose
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx electron-builder --win --verbose 2>&1
+        shell: cmd
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
