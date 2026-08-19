@@ -31,9 +31,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build portable exe
+      - name: Build unpacked app
         shell: cmd
-        run: npx electron-builder --win portable
+        run: npx electron-builder --win --dir
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Build NSIS installer
+        shell: cmd
+        run: npx electron-builder --win nsis --prepackaged dist/win-unpacked
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
@@ -41,6 +47,6 @@ jobs:
         uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: Drive-Relief-Portable
+          name: Drive-Relief-Setup
           path: dist/*.exe
           if-no-files-found: error
