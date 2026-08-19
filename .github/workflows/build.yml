@@ -18,28 +18,12 @@ jobs:
         with:
           node-version: 22
 
-      - name: Cache Electron Builder
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/AppData/Local/electron-builder/Cache
-            ~/AppData/Roaming/electron-builder/Cache
-          key: electron-builder-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            electron-builder-${{ runner.os }}-
-
       - name: Install dependencies
         run: npm install
 
-      - name: Build unpacked app
+      - name: Build
         shell: cmd
-        run: npx electron-builder --win --dir
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-
-      - name: Build NSIS installer
-        shell: cmd
-        run: npx electron-builder --win nsis --prepackaged dist/win-unpacked
+        run: npx electron-builder --win --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
